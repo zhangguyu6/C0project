@@ -1,6 +1,6 @@
 {
 module Frontend.Lexer 
-(scanner)
+(scanner,CTok,AlexPosn(..))
   where
 import Control.Monad (when)
 import Frontend.Token (LexemeCLass(..))
@@ -26,6 +26,7 @@ c0token :-
   <mul_comment> "/*" {embedComment}
   <mul_comment> "*/" {unembedComment}
   <mul_comment> . ;
+  <mul_comment> \n {skip}
   <0> \+ {tok CTokPlu}
   <0> \- {tok CTokMin}
   <0> \* {tok CTokMul}
@@ -142,4 +143,5 @@ scanner str = runAlex str loop
                       else return [t]
             else do toks <- loop
                     return (t:toks)
+
 }
