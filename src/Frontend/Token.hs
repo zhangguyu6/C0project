@@ -5,6 +5,7 @@ where
 
 data LexemeCLass =
       CTokEof  -- eof of flow
+    | CTokSem  -- ;
     | CTokPlu  -- +
     | CTokMin  -- -
     | CTokMul  -- *
@@ -30,6 +31,7 @@ data LexemeCLass =
 
 instance Show LexemeCLass where 
   show CTokEof  = "eof"
+  show CTokSem = ";"
   show CTokPlu  = "+"
   show CTokMin  = "-"
   show CTokMul  = "*"

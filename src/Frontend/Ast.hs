@@ -18,8 +18,7 @@ data Asnop =
     deriving (Eq,Show)
 
 data PrefixExp = 
-      Parens
-    | Unary
+       Unary
     deriving (Eq,Show)
 
 newtype Ident = CIdent String  deriving (Eq,Show) 
@@ -51,7 +50,8 @@ data Stml =
     deriving (Eq,Show)
 
 data Stmls = 
-      GetBlock Block
+      GetOneStml Stml
+    | GetBlock Block
     | MoreStmls Stml Stmls 
     deriving (Eq,Show)
 
@@ -60,3 +60,14 @@ newtype Block = GetStmls Stmls
 
 newtype Program = Pg Block 
     deriving (Eq,Show)
+
+assExten :: Simp -> Simp 
+assExten simp@(Sp lv Ass e) = simp
+assExten (Sp lv AdA e) = Sp lv Ass (GetBinop Add (lvalueTorvalue lv) e)
+assExten (Sp lv MiA e) = Sp lv Ass (GetBinop Min (lvalueTorvalue lv) e)
+assExten (Sp lv MuA e) = Sp lv Ass (GetBinop Mul (lvalueTorvalue lv) e)
+assExten (Sp lv DiA e) = Sp lv Ass (GetBinop Div (lvalueTorvalue lv) e)
+assExten (Sp lv MoA e) = Sp lv Ass (GetBinop Mod (lvalueTorvalue lv) e)
+
+lvalueTorvalue :: Lvalue -> Exp
+lvalueTorvalue (LIdent l)= (RIdent l) 

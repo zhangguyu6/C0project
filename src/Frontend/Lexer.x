@@ -27,6 +27,7 @@ c0token :-
   <mul_comment> "*/" {unembedComment}
   <mul_comment> . ;
   <mul_comment> \n {skip}
+  <0> \; {tok CTokSem}
   <0> \+ {tok CTokPlu}
   <0> \- {tok CTokMin}
   <0> \* {tok CTokMul}
@@ -90,6 +91,8 @@ stringToNum s = CTokInt (read s :: Int)
 data AlexUserState = AlexUserState
                    {
                        lexerCommentDepth  :: Int
+
+                     , lexerCommentPos :: AlexPosn
                     --  , lexerStringValue   :: String
                    }
 
@@ -98,18 +101,29 @@ alexInitUserState = AlexUserState
                    {
                        lexerCommentDepth  = 0
                     --  , lexerStringValue   = ""
+                    ,  lexerCommentPos = AlexPn 0 0 0
                    }
 
 getLexerCommentDepth :: Alex Int
 getLexerCommentDepth = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerCommentDepth ust)
 
+getLexerCommentPos :: Alex AlexPosn
+getLexerCommentPos = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerCommentPos ust)
+
 setLexerCommentDepth :: Int -> Alex ()
 setLexerCommentDepth ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentDepth=ss}}, ())
+
+setLexerCommentPos :: AlexPosn -> Alex ()
+setLexerCommentPos ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentPos=ss}}, ())
+
+getPos :: AlexInput -> AlexPosn
+getPos (p,_,_,_) = p
 
 embedComment :: AlexInput -> Int -> Alex CTok
 embedComment input len =
   do cd <- getLexerCommentDepth
      setLexerCommentDepth (cd + 1)
+     setLexerCommentPos (getPos input)
      skip input len
 
 unembedComment :: AlexInput -> Int -> Alex CTok
@@ -132,14 +146,19 @@ enterComment :: AlexInput -> Int -> Alex CTok
 enterComment input len = do setLexerCommentDepth 1
                             skip input len
 
+
+showpos :: AlexPosn -> String 
+showpos (AlexPn off l c) = "offset at:" ++ show off ++ " line at:"++ show l ++ " col at:"++ show c
+
 scanner :: String -> Either String [CTok]
 scanner str = runAlex str loop
   where loop = do
           t@(tok, _) <- alexMonadScan
           if tok == CTokEof
             then do d <- getLexerCommentDepth
+                    p <- getLexerCommentPos
                     if d /= 0
-                      then alexError "Comment not closed at end of file"
+                      then alexError ("Comment not closed at end of file, "++ showpos p)
                       else return [t]
             else do toks <- loop
                     return (t:toks)
